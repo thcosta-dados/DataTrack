@@ -1,18 +1,16 @@
-version: '3.8'
-
 x-airflow-common:
   &airflow-common
-  image: apache/airflow:2.8.1
+  build: .
   environment:
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
-    - AIRFLOW__CORE__FERNET_KEY=
+    - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
     - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=true
     - AIRFLOW__CORE__LOAD_EXAMPLES=false
-    - _PIP_ADDITIONAL_REQUIREMENTS=boto3
-    # Variáveis injetadas a partir do .env para o Airflow enxergar nativamente
+    # Variaveis injetadas a partir do .env para o Airflow enxergar nativamente
     - ADZUNA_APP_ID=${ADZUNA_APP_ID}
     - ADZUNA_APP_KEY=${ADZUNA_APP_KEY}
+    - JOOBLE_API_KEY=${JOOBLE_API_KEY}
     - MINIO_ROOT_USER=${MINIO_ROOT_USER}
     - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
   volumes:
@@ -70,6 +68,9 @@ services:
     <<: *airflow-common
     command: version
     environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}
+      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
       - _AIRFLOW_DB_UPGRADE=true
       - _AIRFLOW_WWW_USER_CREATE=true
       - _AIRFLOW_WWW_USER_USERNAME=admin
