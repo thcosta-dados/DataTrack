@@ -47,9 +47,13 @@ Este documento resume a conclusão bem-sucedida da **Fase 2** do projeto **DataT
 
 ## 4. Próxima Fase: Fase 3 — Transformação Camada Silver
 
-O objetivo da Fase 3 é pegar a "bagunça" de dados brutos e semiestruturados salvos na Bronze Layer e transformá-los em tabelas limpas, normalizadas e estruturadas no PostgreSQL.
+O objetivo da Fase 3 é pegar a "bagunça" de dados brutos e semiestruturados salvos na Bronze Layer e transformá-los em tabelas limpas, normalizadas e estruturadas na camada Silver.
+
+### Mudança Estratégica de Infraestrutura:
+* **Banco de Dados (PostgreSQL)**: Decidimos utilizar a **Supabase** (PostgreSQL Gerenciado na Nuvem) em vez de subir um container PostgreSQL local no Docker. Isso alivia o consumo de memória do computador e simula uma arquitetura de dados moderna conectando a ingestão local a um banco produtivo em nuvem.
 
 ### Principais Desafios:
-1. **Deduplicação de Vagas**: Utilizar o `rapidfuzz` (distância de Levenshtein) para identificar e agrupar vagas idênticas publicadas em plataformas diferentes.
-2. **Normalização de Áreas e Senioridade**: Mapear cargos bagunçados (ex: "Analista de Analytics Sr", "Data Engineer II", "Estagiário de BI") em categorias fixas de Área (Engenharia, Ciência, Analítica, BI) e Senioridade (Júnior, Pleno, Sênior, Estágio/Trainee).
-3. **Extração de Skills (Hard Skills)**: Varredura nas descrições de vagas para identificar competências-chave (Python, SQL, AWS, Airflow, Spark, dbt).
+1. **Configuração da Supabase**: Criação da instância gratuita de PostgreSQL e mapeamento das credenciais seguras no `.env`.
+2. **Deduplicação de Vagas**: Utilizar o `rapidfuzz` (distância de Levenshtein) para identificar e agrupar vagas idênticas publicadas em plataformas diferentes.
+3. **Normalização de Áreas e Senioridade**: Mapear cargos bagunçados (ex: "Analista de Analytics Sr", "Data Engineer II", "Estagiário de BI") em categorias fixas de Área (Engenharia, Ciência, Analítica, BI) e Senioridade (Júnior, Pleno, Sênior, Estágio/Trainee).
+4. **Extração de Skills (Hard Skills)**: Varredura nas descrições de vagas para identificar competências-chave (Python, SQL, AWS, Airflow, Spark, dbt).
