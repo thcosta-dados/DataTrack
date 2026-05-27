@@ -16,13 +16,22 @@ def get_filter_options():
     # Busca senioridades
     seniorities = conn.query("SELECT seniority_code, order_rank FROM gold.dim_seniority ORDER BY order_rank")
     
-    # Busca localizações distintas (cidades/estados)
+    # Busca localizações distintas (cidades/estados e países)
     locations = conn.query("""
-        SELECT DISTINCT l.location_name 
-        FROM gold.dim_location l
-        JOIN gold.fact_job_posting f ON f.location_id = l.location_id
-        WHERE l.location_name IS NOT NULL AND l.location_name != 'desconhecido'
-        ORDER BY l.location_name
+        (
+            SELECT DISTINCT l.location_name as name 
+            FROM gold.dim_location l
+            JOIN gold.fact_job_posting f ON f.location_id = l.location_id
+            WHERE l.location_name IS NOT NULL AND l.location_name != 'desconhecido'
+        )
+        UNION
+        (
+            SELECT DISTINCT l.country_name as name
+            FROM gold.dim_location l
+            JOIN gold.fact_job_posting f ON f.location_id = l.location_id
+            WHERE l.country_name IS NOT NULL
+        )
+        ORDER BY name
     """)
     
     # Busca todas as skills distintas catalogadas
@@ -31,7 +40,7 @@ def get_filter_options():
     return {
         "areas": areas.to_dict(orient="records"),
         "seniorities": seniorities.to_dict(orient="records"),
-        "locations": locations["location_name"].tolist(),
+        "locations": locations["name"].tolist(),
         "skills": skills["skill_name"].tolist()
     }
 
@@ -87,7 +96,12 @@ def get_vagas_filtradas(areas=None, seniorities=None, locations=None, selected_m
         params["seniorities"] = list(seniorities)
         
     if locations:
-        query += " AND l.location_name = ANY(:locations)"
+        query += """
+            AND (
+                l.location_name = ANY(:locations)
+                OR l.country_name = ANY(:locations)
+            )
+        """
         params["locations"] = list(locations)
         
     if selected_modalities:
