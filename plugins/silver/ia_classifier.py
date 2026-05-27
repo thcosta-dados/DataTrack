@@ -11,15 +11,24 @@ VALID_AREAS = {'data_engineering', 'data_science', 'data_analytics', 'ml_mlops',
 VALID_SENIORITIES = {'estagio', 'junior', 'pleno', 'senior', 'lead', 'unknown'}
 
 def fetch_unknown_active_jobs(conn) -> list[dict]:
-    """Busca vagas recentes e ativas que ainda estão sem classificação."""
+    """Busca vagas recentes e ativas que ainda estão sem classificação, buscando a descrição da raw_jobs."""
     sql = """
-        SELECT job_id, title, description 
-        FROM silver.jobs 
-        WHERE is_active = true
-          AND posted_at >= CURRENT_DATE - 14
-          AND classification_source = 'unknown'
-          AND (area = 'unknown' OR seniority = 'unknown')
-        ORDER BY posted_at DESC
+        SELECT 
+            j.job_id, 
+            j.title, 
+            j.skills,
+            (
+                SELECT r.description 
+                FROM silver.raw_jobs r 
+                WHERE r.source_id = j.source_ids[1] 
+                LIMIT 1
+            ) as description
+        FROM silver.jobs j
+        WHERE j.is_active = true
+          AND j.posted_at >= CURRENT_DATE - 14
+          AND j.classification_source = 'unknown'
+          AND (j.area = 'unknown' OR j.seniority = 'unknown')
+        ORDER BY j.posted_at DESC
     """
     with conn.cursor() as cur:
         cur.execute(sql)
@@ -78,7 +87,10 @@ Retorne a resposta estritamente no seguinte formato JSON:
             
         return {"area": area, "seniority": seniority}
     except Exception as e:
+        err_msg = str(e).lower()
         logger.warning("Falha ao classificar com Gemini: %s", str(e))
+        if "429" in err_msg or "quota" in err_msg:
+            return "RATE_LIMIT"
         return None
 
 def run(**kwargs) -> dict:
@@ -90,8 +102,8 @@ def run(**kwargs) -> dict:
         
     # Inicializa API do Gemini
     genai.configure(api_key=api_key)
-    # gemini-1.5-flash é excelente, rápido e gratuito na cota
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    # gemini-2.5-flash é excelente, rápido e gratuito na cota
+    model = genai.GenerativeModel("gemini-2.5-flash")
     
     conn = get_connection()
     try:
@@ -103,19 +115,28 @@ def run(**kwargs) -> dict:
             return stats
             
         with conn:
-            for job in jobs:
+            for i, job in enumerate(jobs):
+                # Adiciona sleep de 12 segundos antes de cada chamada (exceto na primeira)
+                # para respeitar o limite gratuito de 5 RPM (60s / 5 = 12s)
+                if i > 0:
+                    import time
+                    time.sleep(12)
+
                 job_id = str(job["job_id"])
                 title = job.get("title", "")
                 description = job.get("description", "")
                 
                 result = classify_description_with_gemini(model, title, description)
+                
+                if result == "RATE_LIMIT":
+                    logger.warning("Limite de quota da API atingido. Interrompendo graciosamente a execução para reprocessamento diário futuro.")
+                    break
+                    
                 stats["processed"] += 1
                 
-                if result and (result["area"] != "unknown" or result["seniority"] != "unknown"):
+                if result and isinstance(result, dict) and (result["area"] != "unknown" or result["seniority"] != "unknown"):
                     # Salva classificação enriquecida marcando classification_source = 'ia'
                     # Mantém as skills originais já extraídas sintaticamente
-                    from silver.db import fetch_job_skills
-                    # Se não tiver import da skill na db, podemos buscar
                     cur_skills = job.get("skills", [])
                     
                     update_job_classification(
