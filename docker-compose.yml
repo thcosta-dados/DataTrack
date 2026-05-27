@@ -13,10 +13,16 @@ x-airflow-common:
     - JOOBLE_API_KEY=${JOOBLE_API_KEY}
     - MINIO_ROOT_USER=${MINIO_ROOT_USER}
     - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    # Conexao com o PostgreSQL na nuvem (Supabase) para a Silver Layer
+    - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+    # Informa ao dbt onde esta o profiles.yml dentro do container
+    - DBT_PROFILES_DIR=/opt/airflow/dbt
   volumes:
     - ./dags:/opt/airflow/dags
     - ./plugins:/opt/airflow/plugins
     - ./logs:/opt/airflow/logs
+    # Monta o projeto dbt dentro do container para o BashOperator enxergar
+    - ./dbt:/opt/airflow/dbt
   depends_on:
     postgres:
       condition: service_healthy

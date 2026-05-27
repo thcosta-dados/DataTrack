@@ -28,7 +28,7 @@ USER airflow
 
 # Instalar dependencias Python do projeto
 # (O playwright precisa ser instalado antes de baixarmos o binario do navegador)
-RUN pip install --no-cache-dir boto3 requests playwright beautifulsoup4
+RUN pip install --no-cache-dir boto3 requests playwright beautifulsoup4 psycopg2-binary rapidfuzz
 
 # Baixar apenas o Chromium (navegador que sera usado pelo Playwright) para economizar espaco
 RUN playwright install chromium

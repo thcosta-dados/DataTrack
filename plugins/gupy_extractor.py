@@ -1,6 +1,8 @@
 import os
 import json
 import time
+import base64
+import urllib.parse
 from datetime import datetime
 import boto3
 from botocore.exceptions import ClientError
@@ -99,9 +101,39 @@ def _scrape_gupy_term(page, term):
             
             # Tentativa de parsing basico se tivermos pelo menos 3 linhas
             if len(lines) >= 3:
-                job_data["title"] = lines[0]
-                job_data["company"] = lines[1]
+                job_data["company"] = lines[0]
+                job_data["title"] = lines[1]
                 job_data["location"] = lines[2]
+            
+            # Extraímos o source_id decodificando o token da URL da Gupy
+            source_id = None
+            if url:
+                parsed_url = urllib.parse.urlparse(url)
+                path_parts = parsed_url.path.strip("/").split("/")
+                if "job" in path_parts:
+                    idx = path_parts.index("job")
+                    if idx + 1 < len(path_parts):
+                        token = path_parts[idx + 1]
+                        try:
+                            # Adiciona padding se necessário para decodificar base64
+                            padded_token = token + "=" * ((4 - len(token) % 4) % 4)
+                            decoded_bytes = base64.b64decode(padded_token)
+                            decoded_dict = json.loads(decoded_bytes.decode("utf-8"))
+                            job_id = decoded_dict.get("jobId")
+                            if job_id:
+                                source_id = str(job_id)
+                        except Exception:
+                            source_id = token
+            
+            # Determinamos se a vaga é remota baseado na localização
+            location = job_data.get("location", "")
+            is_remote = False
+            if location:
+                is_remote = any(x in location.lower() for x in ["remoto", "home office", "remote"])
+            
+            job_data["source_id"] = source_id
+            job_data["is_remote"] = is_remote
+            job_data["posted_at"] = datetime.now().isoformat()
             
             collected.append(job_data)
         except Exception as e:

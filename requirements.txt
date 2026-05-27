@@ -1,0 +1,22 @@
+# DataTrack - Dependencias Python
+# Instale com: pip install -r requirements.txt
+
+# Extracao e scraping
+boto3
+requests
+playwright
+beautifulsoup4
+
+# Banco de dados
+psycopg2-binary
+
+# Transformacao Silver Layer
+rapidfuzz
+
+# Dashboards (Streamlit)
+streamlit
+plotly
+pandas
+
+# E-mail digest
+sendgrid

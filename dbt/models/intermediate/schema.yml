@@ -1,0 +1,76 @@
+version: 2
+
+models:
+  - name: int_jobs_with_skills
+    description: >
+      Uma linha por combinacao (job_id, skill). Resulta do unnest() do array skills
+      de stg_jobs. Alimenta dim_skill e agg_skills_frequency.
+    columns:
+      - name: job_id
+        description: "UUID da vaga de origem"
+        tests:
+          - not_null
+      - name: skill
+        description: "Nome da skill individual extraida da descricao da vaga"
+        tests:
+          - not_null
+
+  - name: int_jobs_classified
+    description: >
+      Vagas com area e senioridade garantidas (sem NULLs). Aplica fallback para 'unknown'
+      quando o normalizer nao classificou o campo. Alimenta diretamente a fact table.
+    columns:
+      - name: job_id
+        description: "UUID unico da vaga"
+        tests:
+          - not_null
+          - unique
+      - name: area
+        description: "Area da vaga — nunca nulo nessa camada"
+        tests:
+          - not_null
+          - accepted_values:
+              config:
+                severity: error
+              values:
+                - data_engineering
+                - data_science
+                - data_analytics
+                - ml_mlops
+                - bi
+                - unknown
+      - name: seniority
+        description: "Senioridade da vaga — nunca nulo nessa camada"
+        tests:
+          - not_null
+          - accepted_values:
+              config:
+                severity: error
+              values:
+                - estagio
+                - junior
+                - pleno
+                - senior
+                - especialista
+                - lead
+                - unknown
+
+  - name: int_company_size
+    description: >
+      Porte de cada empresa calculado por volume de vagas nos ultimos 30 dias.
+      Proxy empirico sem dependencia de APIs externas.
+    columns:
+      - name: company_id
+        description: "UUID da empresa"
+        tests:
+          - not_null
+          - unique
+      - name: company_size
+        description: "Porte: grande, media ou pequena"
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - grande
+                - media
+                - pequena

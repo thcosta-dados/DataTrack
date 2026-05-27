@@ -1,0 +1,5 @@
+packages:
+  # dbt-utils e a biblioteca padrao da comunidade dbt.
+  # Fornece macros essenciais como generate_surrogate_key, safe_cast, etc.
+  - package: dbt-labs/dbt_utils
+    version: 1.3.3

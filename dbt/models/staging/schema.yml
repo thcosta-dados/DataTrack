@@ -1,0 +1,87 @@
+version: 2
+
+models:
+  - name: stg_jobs
+    description: "Vagas da Silver Layer com nomenclatura padronizada para a Gold"
+    columns:
+      - name: job_id
+        description: "UUID unico da vaga — chave primaria herdada da silver.jobs"
+        tests:
+          - not_null
+          - unique
+
+      - name: job_sk
+        description: "Surrogate key gerada pelo dbt para uso em joins"
+        tests:
+          - not_null
+          - unique
+
+      - name: job_title
+        description: "Titulo da vaga conforme extraido da fonte original"
+        tests:
+          - not_null
+
+      - name: job_area
+        description: "Area de atuacao classificada pelo normalizer"
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - data_engineering
+                - data_science
+                - data_analytics
+                - ml_mlops
+                - bi
+                - unknown
+
+      - name: job_seniority
+        description: "Nivel de senioridade identificado pelo normalizer"
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - estagio
+                - junior
+                - pleno
+                - senior
+                - especialista
+                - lead
+                - unknown
+
+      - name: posted_date
+        description: "Data de publicacao da vaga"
+        tests:
+          - not_null
+
+      - name: is_remote
+        description: "Indica se a vaga e 100% remota"
+        tests:
+          - not_null
+
+  - name: stg_companies
+    description: "Empresas unicas da Silver Layer com nomenclatura padronizada"
+    columns:
+      - name: company_id
+        description: "UUID unico da empresa"
+        tests:
+          - not_null
+          - unique
+
+      - name: company_name
+        description: "Nome da empresa normalizado"
+        tests:
+          - not_null
+
+  - name: stg_locations
+    description: "Localidades unicas da Silver Layer com nomenclatura padronizada"
+    columns:
+      - name: location_id
+        description: "UUID unico da localidade"
+        tests:
+          - not_null
+          - unique
+
+      - name: location_name
+        description: "Nome da localidade normalizado"
+        tests:
+          - not_null

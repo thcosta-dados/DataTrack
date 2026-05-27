@@ -1,0 +1,42 @@
+version: 2
+
+# Declaramos as tabelas da Silver Layer como fontes do dbt.
+# Isso permite que o dbt rastreie o lineage completo: silver -> gold
+# e rode testes de freshness para alertar se os dados estiverem desatualizados.
+
+sources:
+  - name: silver
+    schema: silver
+    description: "Camada Silver — dados limpos, deduplicados e normalizados pelo pipeline ETL Python"
+    # Configuracao de freshness: alerta se a tabela nao for atualizada em mais de 25h
+    freshness:
+      warn_after: {count: 25, period: hour}
+      error_after: {count: 48, period: hour}
+    loaded_at_field: created_at
+
+    tables:
+      - name: jobs
+        description: "Vagas unicas pos-deduplicacao com classificacao de area, senioridade e skills"
+        columns:
+          - name: job_id
+            description: "UUID primario da vaga"
+          - name: area
+            description: "Area classificada: data_engineering, data_science, data_analytics, ml_mlops, bi, unknown"
+          - name: seniority
+            description: "Senioridade: estagio, junior, pleno, senior, especialista, lead, unknown"
+
+      - name: companies
+        description: "Empresas unicas identificadas apos normalizacao"
+        columns:
+          - name: id
+            description: "UUID primario da empresa"
+          - name: name
+            description: "Nome da empresa normalizado"
+
+      - name: locations
+        description: "Localidades unicas normalizadas"
+        columns:
+          - name: id
+            description: "UUID primario da localidade"
+          - name: name
+            description: "Nome da localidade (cidade, regiao ou 'Remote')"

@@ -1,0 +1,168 @@
+version: 2
+
+models:
+  - name: dim_company
+    description: "Dimensao de empresas unicas com porte calculado por volume de vagas"
+    columns:
+      - name: company_id
+        description: "UUID primario da empresa"
+        tests:
+          - not_null
+          - unique
+      - name: company_name
+        description: "Nome da empresa normalizado"
+        tests:
+          - not_null
+      - name: company_size
+        description: "Porte calculado: grande, media ou pequena"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [grande, media, pequena]
+
+  - name: dim_location
+    description: "Dimensao de localidades com inferencia de country_code"
+    columns:
+      - name: location_id
+        description: "UUID primario da localidade"
+        tests:
+          - not_null
+          - unique
+      - name: location_name
+        description: "Nome da localidade"
+        tests:
+          - not_null
+
+  - name: dim_skill
+    description: "Dimensao de skills unicas extraidas de todas as vagas"
+    columns:
+      - name: skill_id
+        description: "Surrogate key gerada por hash do nome da skill"
+        tests:
+          - not_null
+          - unique
+      - name: skill_name
+        description: "Nome canonico da skill"
+        tests:
+          - not_null
+          - unique
+      - name: primary_category
+        description: "Categoria de dados primaria da skill"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [data_engineering, data_science, analytics_bi, ml_mlops, cross_area]
+
+  - name: dim_area
+    description: "Dimensao estatica das 5 areas de dados + unknown"
+    columns:
+      - name: area_code
+        description: "Codigo da area (ex: data_engineering)"
+        tests:
+          - not_null
+          - unique
+      - name: area_label
+        description: "Label legivel da area (ex: Engenharia de Dados)"
+        tests:
+          - not_null
+
+  - name: dim_seniority
+    description: "Dimensao estatica de niveis de senioridade com order_rank"
+    columns:
+      - name: seniority_code
+        description: "Codigo da senioridade (ex: junior)"
+        tests:
+          - not_null
+          - unique
+      - name: order_rank
+        description: "Ordem numerica para graficos (1=estagio, 6=lead)"
+        tests:
+          - not_null
+
+  - name: fact_job_posting
+    description: "Tabela fato central: uma linha por vaga unica pos-deduplicacao"
+    columns:
+      - name: job_id
+        description: "UUID da vaga — chave primaria da fact table"
+        tests:
+          - not_null
+          - unique
+      - name: company_id
+        description: "FK para dim_company"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_company')
+              field: company_id
+      - name: location_id
+        description: "FK para dim_location"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_location')
+              field: location_id
+      - name: area_code
+        description: "Codigo de area — resolve em dim_area"
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - data_engineering
+                - data_science
+                - data_analytics
+                - ml_mlops
+                - bi
+                - unknown
+      - name: seniority_code
+        description: "Codigo de senioridade — resolve em dim_seniority"
+        tests:
+          - not_null
+          - accepted_values:
+              values:
+                - estagio
+                - junior
+                - pleno
+                - senior
+                - especialista
+                - lead
+                - unknown
+      - name: posted_date
+        description: "Data de publicacao da vaga"
+        tests:
+          - not_null
+      - name: job_url
+        description: "URL original da vaga na fonte"
+        tests:
+          - not_null
+
+  - name: agg_skills_frequency
+    description: "Frequencia diaria de skills por area — alimenta grafico de tendencias"
+    columns:
+      - name: skill
+        description: "Nome da skill"
+        tests:
+          - not_null
+      - name: job_area
+        description: "Area de dados da vaga"
+        tests:
+          - not_null
+      - name: reference_date
+        description: "Data da vaga (nao do snapshot)"
+        tests:
+          - not_null
+      - name: job_count
+        description: "Quantidade de vagas distintas com essa skill nessa area nessa data"
+        tests:
+          - not_null
+
+  - name: agg_market_overview
+    description: "Metricas consolidadas de mercado por area e senioridade (janela 30 dias)"
+    columns:
+      - name: area_code
+        description: "Codigo da area"
+        tests:
+          - not_null
+      - name: total_jobs
+        description: "Total de vagas na janela de 30 dias"
+        tests:
+          - not_null

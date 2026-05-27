@@ -1,0 +1,7 @@
+# O dbt nao deve commitar artefatos compilados nem credenciais
+target/
+dbt_packages/
+logs/
+
+# Credenciais — NUNCA no git
+profiles.yml

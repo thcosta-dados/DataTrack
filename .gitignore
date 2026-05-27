@@ -17,6 +17,23 @@ data/
 # dbt
 target/
 dbt_packages/
+dbt-env/
 
 # IDE
 .gemini/
+.idea/
+.vscode/
+
+# Streamlit secrets e cache
+*secrets.toml
+.streamlit_cache/
+
+# Testes
+.pytest_cache/
+htmlcov/
+.coverage
+
+# OS
+*.db
+Thumbs.db
+.DS_Store
