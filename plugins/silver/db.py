@@ -279,16 +279,25 @@ def fetch_jobs_without_classification(limit: int = 5000) -> list[dict]:
         conn.close()
 
 
-def update_job_classification(job_id: str, area: str, seniority: str, skills: list[str], conn=None) -> None:
+def update_job_classification(job_id: str, area: str, seniority: str, skills: list[str], classification_source: str = None, conn=None) -> None:
     """
-    Atualiza area, senioridade e skills de uma vaga especifica em silver.jobs.
-    Chamado pelo normalizer apos a classificacao.
+    Atualiza area, senioridade, skills e opcionalmente a origem da classificacao em silver.jobs.
+    Chamado pelo normalizer ou ia_classifier.
     """
-    sql = """
-        UPDATE silver.jobs
-        SET area = %s, seniority = %s, skills = %s
-        WHERE job_id = %s
-    """
+    if classification_source:
+        sql = """
+            UPDATE silver.jobs
+            SET area = %s, seniority = %s, skills = %s, classification_source = %s
+            WHERE job_id = %s
+        """
+        params = (area, seniority, skills, classification_source, job_id)
+    else:
+        sql = """
+            UPDATE silver.jobs
+            SET area = %s, seniority = %s, skills = %s
+            WHERE job_id = %s
+        """
+        params = (area, seniority, skills, job_id)
 
     close_conn = False
     if conn is None:
@@ -298,10 +307,10 @@ def update_job_classification(job_id: str, area: str, seniority: str, skills: li
         if close_conn:
             with conn:
                 with conn.cursor() as cur:
-                    cur.execute(sql, (area, seniority, skills, job_id))
+                    cur.execute(sql, params)
         else:
             with conn.cursor() as cur:
-                cur.execute(sql, (area, seniority, skills, job_id))
+                cur.execute(sql, params)
     finally:
         if close_conn:
             conn.close()

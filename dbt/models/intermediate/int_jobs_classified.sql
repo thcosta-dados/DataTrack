@@ -18,6 +18,7 @@ classified as (
         posted_date,
         is_remote,
         is_hybrid,
+        is_active,
         source_ids,
         ingested_at,
 
@@ -37,3 +38,5 @@ classified as (
 
 select * from classified
 where area not in ('non_tech', 'non_data')
+  and is_active = true
+

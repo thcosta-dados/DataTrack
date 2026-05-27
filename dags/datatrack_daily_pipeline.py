@@ -13,6 +13,8 @@ from remoteok_extractor import extract_remoteok_jobs
 from silver.loader import load_all_sources
 from silver.deduplicator import run as deduplicate
 from silver.normalizer import run as normalize
+from silver.ia_classifier import run as classify_via_ia
+from silver.link_checker import run as verify_links
 
 # Importamos a entrega (E-mail Digest)
 from email_sender import send_daily_digest
@@ -137,6 +139,20 @@ with DAG(
         provide_context=True,
     )
 
+    # Classifica por IA (Gemini) as vagas unknown restantes
+    task_silver_ia = PythonOperator(
+        task_id='silver_ia_classify',
+        python_callable=classify_via_ia,
+        provide_context=True,
+    )
+
+    # Verifica se os links de vagas ativas continuam online
+    task_silver_link_checker = PythonOperator(
+        task_id='silver_link_checker',
+        python_callable=verify_links,
+        provide_context=True,
+    )
+
     # ------------------------------------------------------------------
     # Gold Layer: executa dbt run + dbt test
     # Roda APENAS apos a normalizacao Silver estar completa.
@@ -166,7 +182,7 @@ with DAG(
     # Grafo de dependencias
     #
     # extract_adzuna  --+
-    # extract_gupy     +--> validate_bronze --> silver_load_raw --> silver_deduplicate --> silver_normalize --> dbt_run --> send_email_digest
+    # extract_gupy     +--> validate_bronze --> silver_load_raw --> silver_deduplicate --> silver_normalize --> silver_ia_classify --> silver_link_checker --> dbt_run --> send_email_digest
     # extract_jooble   |
     # extract_remoteok --+
     # ------------------------------------------------------------------
@@ -175,4 +191,5 @@ with DAG(
         task_extract_gupy,
         task_extract_jooble,
         task_extract_remoteok,
-    ] >> task_validate_bronze >> task_silver_load >> task_silver_dedup >> task_silver_normalize >> task_dbt_run >> task_send_email
+    ] >> task_validate_bronze >> task_silver_load >> task_silver_dedup >> task_silver_normalize >> task_silver_ia >> task_silver_link_checker >> task_dbt_run >> task_send_email
+

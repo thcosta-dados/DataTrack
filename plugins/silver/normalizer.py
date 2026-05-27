@@ -346,11 +346,16 @@ def run(**kwargs) -> dict:
                 seniority = classify_seniority(title)
                 skills    = extract_skills(description, area)
 
+                # Se a classificação sintática resolveu área ou senioridade, marca como 'syntax'
+                # Caso contrário, mantém como 'unknown' para ser elegível para o robô de IA
+                source = "syntax" if (area or seniority) else "unknown"
+
                 update_job_classification(
                     job_id=job_id,
                     area=area or "unknown",
                     seniority=seniority or "unknown",
                     skills=skills,
+                    classification_source=source,
                     conn=shared_conn,
                 )
 

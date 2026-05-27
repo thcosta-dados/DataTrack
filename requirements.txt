@@ -20,3 +20,8 @@ pandas
 
 # E-mail digest
 sendgrid
+
+# IA e Validação Concorrente
+google-generativeai
+httpx
+

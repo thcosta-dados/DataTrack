@@ -32,6 +32,9 @@ renamed as (
         coalesce(is_remote, false)          as is_remote,
         coalesce(is_hybrid, false)          as is_hybrid,
 
+        -- Status Ativo
+        coalesce(is_active, true)           as is_active,
+
         -- Array de IDs de fontes (Adzuna, Gupy, Jooble, RemoteOK)
         source_ids,
 
