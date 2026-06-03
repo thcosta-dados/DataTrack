@@ -1,4 +1,4 @@
-FROM apache/airflow:2.8.1
+FROM apache/airflow:2.8.1-python3.11
 
 # 1. Trocar para o usuario root para poder instalar dependencias de sistema (pacotes apt)
 USER root
@@ -28,7 +28,12 @@ USER airflow
 
 # Instalar dependencias Python do projeto
 # (O playwright precisa ser instalado antes de baixarmos o binario do navegador)
-RUN pip install --no-cache-dir boto3 requests playwright beautifulsoup4 psycopg2-binary rapidfuzz
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Baixar apenas o Chromium (navegador que sera usado pelo Playwright) para economizar espaco
 RUN playwright install chromium
+
+# Criar virtualenv isolado para o dbt e instalar o adaptador do PostgreSQL
+RUN python -m venv /opt/airflow/dbt-env && \
+    PIP_USER=false /opt/airflow/dbt-env/bin/pip install --no-cache-dir dbt-core dbt-postgres

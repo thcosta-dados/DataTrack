@@ -1,5 +1,7 @@
+from __future__ import annotations
 import asyncio
 import logging
+import unicodedata
 import httpx
 from silver.db import get_connection
 
@@ -86,7 +88,6 @@ async def check_single_url(client: httpx.AsyncClient, semaphore: asyncio.Semapho
                     "infelizmente essa vaga nao"
                 ]
                 # Remove acentos do HTML para comparação limpa
-                import unicodedata
                 normalized = unicodedata.normalize("NFD", html_lower).encode("ascii", "ignore").decode("ascii")
                 if any(ind in normalized for ind in text_indicators):
                     return job_id, False
@@ -107,7 +108,9 @@ async def check_all_urls(jobs: list[dict]) -> list[str]:
     semaphore = asyncio.Semaphore(10)
     inactive_ids = []
     
-    # Configura limites de pool de conexões no httpx
+    # verify=False desabilita validacao TLS intencionalmente:
+    # estamos apenas checando se a URL responde, nao transferindo dados sensiveis.
+    # Muitos sites de vagas usam certificados auto-assinados ou CDNs com certs intermediarios.
     limits = httpx.Limits(max_keepalive_connections=5, max_connections=20)
     async with httpx.AsyncClient(limits=limits, verify=False) as client:
         tasks = []
@@ -149,13 +152,7 @@ def run(**kwargs) -> dict:
             return stats
             
         # Executa loop de evento assíncrono para os testes HTTP
-        try:
-            loop = asyncio.get_event_loop()
-        except RuntimeError:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-        inactive_ids = loop.run_until_complete(check_all_urls(active_jobs))
+        inactive_ids = asyncio.run(check_all_urls(active_jobs))
         
         # 3. Atualiza o status de inativas no banco em lote
         if inactive_ids:

@@ -1,24 +1,120 @@
 import streamlit as st
-import pandas as pd
 from database import get_filter_options, get_vagas_filtradas
 from theme import apply_theme, theme_toggle
 
-# 1. Configuração da página (deve ser o primeiro comando Streamlit)
+# -- Configuracao da pagina (primeiro comando Streamlit obrigatoriamente)
 st.set_page_config(
-    page_title="DataTrack — Inteligência de Vagas de Dados",
+    page_title="DataTrack -- Inteligencia de Vagas de Dados",
     page_icon="🔍",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
 
-# 2. Aplica o Tema e importa CSS customizado
 apply_theme()
 
-# Cabeçalho Principal
-st.markdown("<h1 style='margin-bottom: 0px;'>🔍 DataTrack</h1>", unsafe_allow_html=True)
-st.markdown("<p class='subheader' style='margin-top: 0px; font-size: 1.1em;'>Busca inteligente de vagas de dados consolidadas e deduplicadas</p>", unsafe_allow_html=True)
 
-# 3. Carrega opções dinâmicas para os filtros
+# ===== HELPER: monta o HTML de um card de vaga =====
+def _modality_tag(row):
+    """Retorna o HTML da tag de modalidade baseado nos flags da vaga."""
+    if row["is_remote"]:
+        return '<span class="tag tag-remote">Remoto</span>'
+    if row["is_hybrid"]:
+        return '<span class="tag tag-hybrid">Hibrido</span>'
+    return '<span class="tag tag-onsite">Presencial</span>'
+
+
+def _skills_badges(skills_list):
+    """Renderiza badges de skills ou fallback."""
+    if not isinstance(skills_list, list) or not skills_list:
+        return '<span class="skill-badge">Nao mapeada</span>'
+    return "".join(
+        f'<span class="skill-badge">{s}</span>' for s in skills_list
+    )
+
+
+def _render_job_card(row, idx):
+    """Monta o HTML completo de um card de vaga com detalhes expandidos."""
+    title = row["title"]
+    company = row["company"]
+    location = row["location"]
+    area = row["area"]
+    seniority = row["seniority"]
+    skills = row.get("skills", [])
+    url = row["url"]
+    posted = row["posted_at"]
+    modality = _modality_tag(row)
+
+    date_str = ""
+    if posted:
+        try:
+            date_str = posted.strftime("%d/%m")
+        except AttributeError:
+            date_str = str(posted)[:10]
+
+    card_html = f"""
+    <div class="job-card" id="job-card-{idx}">
+        <div class="job-card-header">
+            <div>
+                <div class="job-title">{title}</div>
+                <div class="job-tags">
+                    <span class="tag tag-company">{company}</span>
+                    {modality}
+                    <span class="tag tag-location">{location}</span>
+                </div>
+            </div>
+            <div class="tag-date">{date_str}</div>
+        </div>
+        <div class="job-card-body">
+            <div class="detail-grid">
+                <div class="job-detail-left">
+                    <strong>Vaga:</strong> {title}<br>
+                    <strong>Local:</strong> {location}<br>
+                    <strong>Area:</strong> {area}<br>
+                    <strong>Senioridade:</strong> {seniority}<br>
+                    <div class="skills-row">
+                        {_skills_badges(skills)}
+                    </div>
+                </div>
+                <div class="job-detail-right">
+                    <div class="company-label">EMPRESA</div>
+                    <div class="company-name">{company}</div>
+                    <a class="cta-button" href="{url}" target="_blank" rel="noopener">
+                        Candidatar-se
+                    </a>
+                    <a class="secondary-link" href="{url}" target="_blank" rel="noopener">
+                        Ver Post Original
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    """
+    return card_html
+
+
+# ===================================================================
+# LAYOUT PRINCIPAL
+# ===================================================================
+
+# 1. Banner superior
+st.markdown(
+    '<div class="top-banner">Plataforma de inteligencia para vagas de dados. Dados coletados e deduplicados automaticamente.</div>',
+    unsafe_allow_html=True
+)
+
+# 2. Header com badge + titulo
+st.markdown(
+    """
+    <div class="header-section">
+        <div class="badge">Vagas Atualizadas</div>
+        <h1>Portal de <span class="accent">Oportunidades</span></h1>
+        <div class="subtitle">As melhores vagas de Dados e BI curadas diariamente pelo DataTrack</div>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+# 3. Filtros inline (horizontais no corpo, sem sidebar)
 with st.spinner("Conectando ao Supabase e carregando filtros..."):
     try:
         filter_opts = get_filter_options()
@@ -26,69 +122,95 @@ with st.spinner("Conectando ao Supabase e carregando filtros..."):
         st.error(f"Erro ao conectar com o banco de dados Supabase: {str(e)}")
         st.stop()
 
-# 4. Construção do Sidebar de Filtros
-st.sidebar.markdown("<h3 style='margin-top: 0px;'>Filtros de Busca</h3>", unsafe_allow_html=True)
-
-search_term = st.sidebar.text_input("Buscar por título ou empresa", placeholder="Ex: Engenheiro de Dados, Itaú")
-
-# Formata áreas para exibição
-area_mapping = {a["area_code"]: a["area_label"] for a in filter_opts["areas"]}
-selected_areas_labels = st.sidebar.multiselect(
-    "Área de Atuação",
-    options=list(area_mapping.values()),
-    default=None,
-    help="Filtre por grandes famílias de cargos de dados"
-)
-selected_areas = [k for k, v in area_mapping.items() if v in selected_areas_labels]
-
-# Formata senioridades
-seniority_labels = {
-    "estagio": "Estágio", "junior": "Júnior", "pleno": "Pleno",
-    "senior": "Sênior", "especialista": "Especialista", "lead": "Lead", "unknown": "Não Informado"
-}
-selected_seniorities_labels = st.sidebar.multiselect(
-    "Senioridade",
-    options=list(seniority_labels.values()),
-    default=None
-)
-selected_seniorities = [k for k, v in seniority_labels.items() if v in selected_seniorities_labels]
-
-# Localização
-selected_locations = st.sidebar.multiselect(
-    "Cidade / Estado",
-    options=filter_opts["locations"],
-    default=None
+# Linha de busca
+search_term = st.text_input(
+    "Pesquise por cargo, tecnologia ou empresa...",
+    placeholder="Ex: Engenheiro de Dados, Python, Itau",
+    label_visibility="collapsed"
 )
 
-# Modalidade de trabalho
-selected_modalities = st.sidebar.multiselect(
-    "Modalidade",
-    options=["🌐 Remoto", "🏢 Híbrido", "🏢 Presencial"],
-    default=["🌐 Remoto", "🏢 Híbrido", "🏢 Presencial"],
-    help="Selecione as modalidades de trabalho desejadas"
-)
+# Linha de filtros (3 colunas)
+col_region, col_seniority, col_area = st.columns(3)
 
-# Skills
-selected_skills = st.sidebar.multiselect(
-    "Tecnologias / Skills",
-    options=filter_opts["skills"],
-    default=None,
-    help="Vagas que exijam TODAS as tecnologias selecionadas"
-)
+with col_region:
+    selected_locations = st.multiselect(
+        "Regiao",
+        options=filter_opts["locations"],
+        default=None,
+        placeholder="Todas Regioes"
+    )
 
-# Período de publicação (Recência)
-dias_option = st.sidebar.slider(
-    "Publicadas há no máximo (dias)",
-    min_value=1,
-    max_value=30,
-    value=7,
-    help="Filtra a recência do post da vaga"
-)
+with col_seniority:
+    seniority_labels = {
+        "estagio": "Estagio", "junior": "Junior", "pleno": "Pleno",
+        "senior": "Senior", "especialista": "Especialista",
+        "lead": "Lead", "unknown": "Nao Informado"
+    }
+    selected_seniorities_labels = st.multiselect(
+        "Senioridade",
+        options=list(seniority_labels.values()),
+        default=None,
+        placeholder="Todas Senioridades"
+    )
+    selected_seniorities = [
+        k for k, v in seniority_labels.items()
+        if v in selected_seniorities_labels
+    ]
 
-# Toggle de Aparência no Sidebar
-theme_toggle()
+with col_area:
+    area_mapping = {
+        a["area_code"]: a["area_label"] for a in filter_opts["areas"]
+    }
+    selected_areas_labels = st.multiselect(
+        "Area de Atuacao",
+        options=list(area_mapping.values()),
+        default=None,
+        placeholder="Todas Areas"
+    )
+    selected_areas = [
+        k for k, v in area_mapping.items()
+        if v in selected_areas_labels
+    ]
 
-# 5. Executa a busca no banco
+# Linha secundaria: skills + modalidade + periodo + tema
+col_skills, col_modal, col_dias, col_theme = st.columns([2, 1.5, 1, 0.5])
+
+with col_skills:
+    selected_skills = st.multiselect(
+        "Tecnologias / Skills",
+        options=filter_opts["skills"],
+        default=None,
+        placeholder="Qualquer tecnologia"
+    )
+
+with col_modal:
+    modal_options = ["Remoto", "Hibrido", "Presencial"]
+    selected_modalities_raw = st.multiselect(
+        "Modalidade",
+        options=modal_options,
+        default=modal_options,
+        placeholder="Todas"
+    )
+    # Converte para formato esperado pelo database.py
+    modality_map = {
+        "Remoto": "🌐 Remoto",
+        "Hibrido": "🏢 Híbrido",
+        "Presencial": "🏢 Presencial"
+    }
+    selected_modalities = [modality_map[m] for m in selected_modalities_raw]
+
+with col_dias:
+    dias_option = st.slider(
+        "Ultimos (dias)",
+        min_value=1, max_value=30, value=7
+    )
+
+with col_theme:
+    st.markdown("<br>", unsafe_allow_html=True)
+    theme_toggle()
+
+
+# 4. Busca no banco
 vagas_df = get_vagas_filtradas(
     areas=selected_areas,
     seniorities=selected_seniorities,
@@ -98,87 +220,37 @@ vagas_df = get_vagas_filtradas(
     dias=dias_option,
     search_term=search_term
 )
-# 6. Exibição dos resultados
-total_vagas_coletadas = len(vagas_df)
-vagas_exibidas_texto = "200+" if total_vagas_coletadas > 200 else str(total_vagas_coletadas)
 
-# Trunca para 200 para a exibição na tabela e drill-down
-if total_vagas_coletadas > 200:
+total_vagas = len(vagas_df)
+vagas_exibidas_texto = "200+" if total_vagas > 200 else str(total_vagas)
+
+if total_vagas > 200:
     vagas_df = vagas_df.head(200)
 
-col_kpi, _ = st.columns([1, 3])
-with col_kpi:
+# 5. Stats bar
+st.markdown(
+    f'<div class="stats-bar">'
+    f'<div class="count"><span>{vagas_exibidas_texto}</span> vagas encontradas</div>'
+    f'</div>',
+    unsafe_allow_html=True
+)
+
+# 6. Resultados: cards de vagas
+if vagas_df.empty:
     st.markdown(
-        f"""
-        <div class="metric-card">
-            <small style="color: #94A3B8; text-transform: uppercase; font-weight: 600; font-size: 0.8em;">Vagas Encontradas</small>
-            <h2 style="margin: 5px 0px; font-size: 2.2em; color: #6C63FF;">{vagas_exibidas_texto}</h2>
-            <small style="color: #64748B;">Atendendo aos critérios selecionados</small>
+        """
+        <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <div class="empty-title">Nenhuma vaga encontrada</div>
+            <div class="empty-desc">Tente expandir o periodo ou reduzir os filtros para encontrar mais oportunidades.</div>
         </div>
         """,
         unsafe_allow_html=True
     )
-
-st.markdown("<br>", unsafe_allow_html=True)
-
-if vagas_df.empty:
-    st.info("Nenhuma vaga encontrada para os filtros selecionados. Tente expandir o período ou reduzir os filtros.")
 else:
-    # Formata colunas para exibição na tabela interativa
-    display_df = vagas_df.copy()
-    
-    # Converte array de skills em string amigável
-    display_df["skills"] = display_df["skills"].apply(lambda s: ", ".join(s) if isinstance(s, list) else "Não mapeada")
-    
-    # Formata modalidades
-    display_df["Modalidade"] = display_df.apply(
-        lambda r: "🌐 Remoto" if r["is_remote"] else ("🏢 Híbrido" if r["is_hybrid"] else "🏢 Presencial"),
-        axis=1
-    )
-    
-    # Remove colunas auxiliares/IDs da visão principal
-    display_df = display_df[["title", "company", "location", "Modalidade", "area", "seniority", "skills", "posted_at"]]
-    display_df.columns = ["Título", "Empresa", "Localização", "Modalidade", "Área", "Senioridade", "Tecnologias", "Publicada em"]
-    
-    # Configuração de colunas interativas no dataframe
-    st.subheader("Vagas Disponíveis")
-    st.markdown("<p class='subheader' style='font-size: 0.9em; margin-bottom: 10px;'>Selecione uma vaga na tabela abaixo para abrir os detalhes de candidatura.</p>", unsafe_allow_html=True)
-    
-    # st.dataframe interativo
-    event = st.dataframe(
-        display_df,
-        use_container_width=True,
-        hide_index=True,
-        selection_mode="single-row",
-        on_select="rerun"
-    )
-    
-    # 7. Drill-down: Mostrar detalhes se houver seleção
-    if event and event.get("selection") and event["selection"].get("rows"):
-        selected_row_idx = event["selection"]["rows"][0]
-        vaga_selecionada = vagas_df.iloc[selected_row_idx]
-        
-        st.markdown("---")
-        st.subheader("📍 Detalhes da Vaga Selecionada")
-        
-        col1, col2 = st.columns([2, 1])
-        with col1:
-            st.markdown(f"### **{vaga_selecionada['title']}**")
-            st.markdown(f"🏢 **Empresa:** {vaga_selecionada['company']} | 📍 **Local:** {vaga_selecionada['location']}")
-            st.markdown(f"📂 **Área:** {vaga_selecionada['area']} | 🏷️ **Senioridade:** {vaga_selecionada['seniority']}")
-            
-            skills_list = vaga_selecionada['skills']
-            if isinstance(skills_list, list) and skills_list:
-                skills_badges = " ".join([f"<span style='background-color: rgba(108, 99, 255, 0.15); color: #6C63FF; padding: 4px 10px; border-radius: 20px; font-size: 0.85em; font-weight: 500; border: 1px solid rgba(108, 99, 255, 0.3); margin-right: 5px; margin-bottom: 5px; display: inline-block;'>{s}</span>" for s in skills_list])
-                st.markdown(f"**Tecnologias Requeridas:**<br>{skills_badges}", unsafe_allow_html=True)
-            else:
-                st.markdown("**Tecnologias Requeridas:** Não mapeada na descrição")
-                
-        with col2:
-            st.markdown("<br><br>", unsafe_allow_html=True)
-            st.link_button(
-                "🔥 Ir para a Vaga / Candidatar-se",
-                url=vaga_selecionada['url'],
-                use_container_width=True
-            )
-            st.markdown(f"<p style='text-align: center; color: #64748B; font-size: 0.85em;'>Publicada em: {vaga_selecionada['posted_at'].strftime('%d/%m/%Y')}</p>", unsafe_allow_html=True)
+    # Monta o HTML de todos os cards de uma vez (mais eficiente que multiplos st.markdown)
+    cards_html = ""
+    for idx, row in vagas_df.iterrows():
+        cards_html += _render_job_card(row, idx)
+
+    st.markdown(cards_html, unsafe_allow_html=True)

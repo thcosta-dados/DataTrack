@@ -68,11 +68,11 @@ def send_daily_digest(**kwargs):
             <p style="margin: 0px; font-size: 0.9em; color: #64748B; font-family: sans-serif;">
                 🏢 <b>{v[1]}</b> | 📍 {v[2]} | 💼 {v[4]}
             </p>
-            <p style="margin: 5px 0px 0px 0px; font-size: 0.85em; color: #6C63FF; font-family: sans-serif; font-weight: bold;">
+            <p style="margin: 5px 0px 0px 0px; font-size: 0.85em; color: #00D4AA; font-family: sans-serif; font-weight: bold;">
                 Categoria: {v[3]}
             </p>
             <div style="margin-top: 10px;">
-                <a href="{v[5]}" target="_blank" style="background-color: #4F46E5; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-family: sans-serif; font-weight: bold; display: inline-block;">
+                <a href="{v[5]}" target="_blank" style="background-color: #00B894; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-family: sans-serif; font-weight: bold; display: inline-block;">
                     Candidatar-se / Ver Origem
                 </a>
             </div>
@@ -87,8 +87,8 @@ def send_daily_digest(**kwargs):
     </head>
     <body style="margin: 0; padding: 20px; background-color: #F1F5F9; font-family: sans-serif;">
         <div style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #E2E8F0;">
-            <div style="background: linear-gradient(90deg, #6C63FF 0%, #4F46E5 100%); padding: 30px; text-align: center;">
-                <h1 style="color: white; margin: 0px; font-size: 24px; letter-spacing: -0.5px;">🔍 DataTrack Digest</h1>
+            <div style="background: linear-gradient(90deg, #00D4AA 0%, #00B894 100%); padding: 30px; text-align: center;">
+                <h1 style="color: white; margin: 0px; font-size: 24px; letter-spacing: -0.5px;">DataTrack Digest</h1>
                 <p style="color: rgba(255,255,255,0.8); margin: 5px 0px 0px 0px; font-size: 14px;">As melhores vagas de dados consolidadas nas últimas 24 horas</p>
             </div>
             <div style="padding: 25px;">
@@ -105,7 +105,7 @@ def send_daily_digest(**kwargs):
                 
                 <br>
                 <div style="text-align: center; margin-top: 15px;">
-                    <a href="https://share.streamlit.io/thiago/datatrack" target="_blank" style="background-color: #10B981; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: bold; display: inline-block; box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);">
+                    <a href="https://share.streamlit.io/thiago/datatrack" target="_blank" style="background-color: #00D4AA; color: #0F0F1A; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-size: 15px; font-weight: bold; display: inline-block; box-shadow: 0 4px 8px rgba(0, 212, 170, 0.2);">
                         📊 Acessar Dashboard Completo
                     </a>
                 </div>
@@ -132,10 +132,13 @@ def send_daily_digest(**kwargs):
             logger.error("Falha ao salvar HTML de e-mail localmente: %s", str(write_err))
         return "skipped_no_key"
         
+    from_email = os.environ.get("SENDGRID_FROM_EMAIL", "alerts@datatrack.com")
+    to_email = os.environ.get("DIGEST_TO_EMAIL", "thiago@exemplo.com")
+
     message = Mail(
-        from_email='alerts@datatrack.com',
-        to_emails='thiago@exemplo.com', # O e-mail do Thiago (ou configurado via env)
-        subject=f'DataTrack Digest — {execution_date}',
+        from_email=from_email,
+        to_emails=to_email,
+        subject=f'DataTrack Digest -- {execution_date}',
         html_content=html_content
     )
     

@@ -1,5 +1,7 @@
+from __future__ import annotations
 import os
 import json
+import time
 import logging
 import google.generativeai as genai
 from silver.db import get_connection, update_job_classification
@@ -119,7 +121,6 @@ def run(**kwargs) -> dict:
                 # Adiciona sleep de 12 segundos antes de cada chamada (exceto na primeira)
                 # para respeitar o limite gratuito de 5 RPM (60s / 5 = 12s)
                 if i > 0:
-                    import time
                     time.sleep(12)
 
                 job_id = str(job["job_id"])

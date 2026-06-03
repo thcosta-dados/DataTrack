@@ -19,6 +19,16 @@ x-airflow-common:
     - GEMINI_API_KEY=${GEMINI_API_KEY}
     # Informa ao dbt onde esta o profiles.yml dentro do container
     - DBT_PROFILES_DIR=/opt/airflow/dbt
+    # Variaveis do dbt profiles.yml (env_var)
+    - DBT_PG_HOST=${DBT_PG_HOST:-localhost}
+    - DBT_PG_USER=${DBT_PG_USER:-postgres}
+    - DBT_PG_PASSWORD=${DBT_PG_PASSWORD:-password}
+    - DBT_PG_PORT=${DBT_PG_PORT:-5432}
+    - DBT_PG_DBNAME=${DBT_PG_DBNAME:-postgres}
+    # Email Digest
+    - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+    - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL:-}
+    - DIGEST_TO_EMAIL=${DIGEST_TO_EMAIL:-}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./plugins:/opt/airflow/plugins
@@ -44,6 +54,11 @@ services:
       test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
       interval: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
   minio:
     image: minio/minio
@@ -56,6 +71,11 @@ services:
     command: server /data --console-address ":9001"
     volumes:
       - ./data/minio:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
 
   airflow-webserver:
     <<: *airflow-common
@@ -67,10 +87,20 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1.5G
 
   airflow-scheduler:
     <<: *airflow-common
     command: scheduler
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1.5G
 
   airflow-init:
     <<: *airflow-common
@@ -83,6 +113,30 @@ services:
       - _AIRFLOW_WWW_USER_CREATE=true
       - _AIRFLOW_WWW_USER_USERNAME=admin
       - _AIRFLOW_WWW_USER_PASSWORD=admin
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  streamlit:
+    build: .
+    entrypoint: []
+    command: streamlit run dashboard/app.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dashboard:/opt/airflow/dashboard
+    environment:
+      - SUPABASE_DB_URL=${SUPABASE_DB_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 1G
 
 volumes:
   postgres-data:

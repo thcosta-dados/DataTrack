@@ -1,8 +1,12 @@
 import streamlit as st
 import pandas as pd
+import os
 
 def get_connection():
     """Retorna a conexão com o banco gerenciada pelo Streamlit."""
+    db_url = os.environ.get("SUPABASE_DB_URL")
+    if db_url:
+        return st.connection("postgresql", type="sql", url=db_url)
     return st.connection("postgresql", type="sql")
 
 @st.cache_data(ttl=3600)
