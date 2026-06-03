@@ -66,9 +66,7 @@ def apply_theme():
         line-height: 1.1 !important;
     }
     div.header-section h1 span.accent {
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
+        background: none !important;
     }
     div.header-section .subtitle {
         font-size: 1.05em;
@@ -342,7 +340,8 @@ def apply_theme():
             border: 1px solid rgba(0, 212, 170, 0.2);
         }
         div.header-section h1 span.accent {
-            background: linear-gradient(135deg, #00D4AA, #00E6B8);
+            color: #00D4AA !important;
+            -webkit-text-fill-color: #00D4AA !important;
         }
 
         h1, h2, h3 { color: #EDEDF4 !important; font-weight: 700 !important; }
@@ -439,7 +438,8 @@ def apply_theme():
             border: 1px solid rgba(13, 148, 136, 0.2);
         }
         div.header-section h1 span.accent {
-            background: linear-gradient(135deg, #0D9488, #14B8A6);
+            color: #0D9488 !important;
+            -webkit-text-fill-color: #0D9488 !important;
         }
 
         h1, h2, h3 { color: #1C1917 !important; font-weight: 700 !important; }

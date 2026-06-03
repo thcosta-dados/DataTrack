@@ -107,7 +107,7 @@ st.markdown(
     """
     <div class="header-section">
         <div class="badge">Vagas Atualizadas</div>
-        <h1>Portal de <span class="accent">Oportunidades</span></h1>
+        <h1>Localizador de <span class="accent">Vagas</span></h1>
         <div class="subtitle">As melhores vagas de Dados e BI curadas diariamente pelo DataTrack</div>
     </div>
     """,
